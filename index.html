@@ -605,6 +605,18 @@
     </div>
 
     <div class="card no-print">
+      <h2>Passwort ändern</h2>
+      <label>Aktuelles Passwort</label>
+      <input type="password" id="pwCurrent" autocomplete="current-password">
+      <label>Neues Passwort</label>
+      <input type="password" id="pwNew" autocomplete="new-password">
+      <label>Neues Passwort wiederholen</label>
+      <input type="password" id="pwConfirm" autocomplete="new-password">
+      <button class="btn secondary" style="margin-top:10px;" onclick="changePassword()">Passwort ändern</button>
+      <p class="hint" id="pwChangeMsg" style="display:none;"></p>
+    </div>
+
+    <div class="card no-print">
       <h2>Sitzung</h2>
       <button class="btn secondary" onclick="logout()">Abmelden</button>
     </div>
@@ -864,13 +876,18 @@ function autoDownloadBackup(){
    Betrachter kann die Quelle einsehen. Für ein Team-Tool ohne sensible Login-
    Daten mit festem Passwort ist das ein angemessener, einfacher Kompromiss. */
 const APP_USERNAME = 'Katrin Rölig';
-const APP_PASSWORD = 'Karin123';
+const APP_PASSWORD_DEFAULT = 'Katrin123';
 const LS_LOGIN = 'kr_logged_in';
+const LS_PASSWORD = 'kr_app_password';
+
+function getAppPassword(){
+  return lsGet(LS_PASSWORD) || APP_PASSWORD_DEFAULT;
+}
 
 function tryLogin(){
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
-  if(u === APP_USERNAME && p === APP_PASSWORD){
+  if(u === APP_USERNAME && p === getAppPassword()){
     lsSet(LS_LOGIN, '1');
     document.getElementById('loginGate').style.display = 'none';
     document.getElementById('loginError').style.display = 'none';
@@ -881,6 +898,37 @@ function tryLogin(){
 function logout(){
   lsSet(LS_LOGIN, '0');
   window.location.reload();
+}
+function changePassword(){
+  const current = document.getElementById('pwCurrent').value;
+  const next = document.getElementById('pwNew').value;
+  const confirm = document.getElementById('pwConfirm').value;
+  const msg = document.getElementById('pwChangeMsg');
+  if(current !== getAppPassword()){
+    msg.style.color = '#a01818';
+    msg.textContent = 'Aktuelles Passwort ist falsch.';
+    msg.style.display = 'block';
+    return;
+  }
+  if(!next || next.length < 4){
+    msg.style.color = '#a01818';
+    msg.textContent = 'Neues Passwort muss mindestens 4 Zeichen haben.';
+    msg.style.display = 'block';
+    return;
+  }
+  if(next !== confirm){
+    msg.style.color = '#a01818';
+    msg.textContent = 'Die beiden neuen Passwörter stimmen nicht überein.';
+    msg.style.display = 'block';
+    return;
+  }
+  lsSet(LS_PASSWORD, next);
+  document.getElementById('pwCurrent').value = '';
+  document.getElementById('pwNew').value = '';
+  document.getElementById('pwConfirm').value = '';
+  msg.style.color = '#1b6e2c';
+  msg.textContent = 'Passwort geändert.';
+  msg.style.display = 'block';
 }
 
 /* ---------------- Init ---------------- */
