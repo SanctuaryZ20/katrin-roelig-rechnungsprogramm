@@ -412,7 +412,7 @@
       <div class="grid2">
         <div>
           <label>Nummer der Original-Rechnung</label>
-          <input type="text" id="corrOrigNumber" placeholder="z.B. RE202608-0001">
+          <input type="text" id="corrOrigNumber" placeholder="z.B. RE2026-001">
         </div>
         <div>
           <label>Datum der Original-Rechnung</label>
@@ -604,11 +604,11 @@
     <div class="card no-print">
       <h2>Rechnungsnummerierung</h2>
       <label>Zuletzt vergebene Rechnungsnummer (falls schon Rechnungen existieren, sonst leer lassen)</label>
-      <input type="text" id="setLastNumber" placeholder="z.B. RE202606-0018">
+      <input type="text" id="setLastNumber" placeholder="z.B. RE2026-018">
       <label>Nächste Nummer beginnt bei laufender Nummer</label>
       <input type="number" id="setNextCounter" min="1" value="1">
       <button class="btn secondary" style="margin-top:10px;" onclick="saveNumbering()">Nummerierung speichern</button>
-      <p class="hint">Das Programm vergibt danach automatisch fortlaufende Nummern ohne Lücke, im Format RE-JJJJMM-laufendeNummer. Bitte nur einmalig beim ersten Einrichten anpassen.</p>
+      <p class="hint">Das Programm vergibt danach automatisch fortlaufende Nummern ohne Lücke, im Format RE-JJJJ-laufendeNummer (z.B. RE2026-001). Die Nummer beginnt mit jedem neuen Kalenderjahr wieder bei 001. Der Startwert oben ist nur für die allererste Einrichtung nötig — danach vergibt das Programm automatisch fortlaufend weiter, ganz ohne dass du dich an die letzte Nummer erinnern musst.</p>
     </div>
 
     <div class="card no-print">
@@ -1154,22 +1154,37 @@ function fmtDate(iso){
   const d = new Date(iso+'T00:00:00');
   return d.toLocaleDateString('de-DE');
 }
-/* Ermittelt die nächste Rechnungsnummer NICHT nur aus dem gespeicherten Zähler,
-   sondern zusätzlich aus der höchsten bereits im Journal vorhandenen Nummer.
-   So kann es auch dann nie zu einer doppelt vergebenen oder übersprungenen
-   Nummer kommen, wenn der Zähler durch einen Fehler/Import veraltet ist. */
+/* Ermittelt die nächste Rechnungsnummer im Format RE-JJJJ-NNN. Die Nummer setzt
+   sich pro Kalenderjahr neu fort (RE2026-001, RE2026-002, ... RE2027-001, ...).
+   Berechnet wird sie NICHT nur aus dem gespeicherten Zähler, sondern zusätzlich
+   aus der höchsten bereits im Journal für dieses Jahr vorhandenen Nummer — so
+   kann es nie zu einer doppelt vergebenen oder übersprungenen Nummer kommen,
+   selbst wenn der Zähler durch einen Fehler/Import veraltet ist. Der gespeicherte
+   Zähler dient nur als Startwert, falls für das Jahr noch keine Rechnung existiert
+   (z.B. beim erstmaligen Einrichten mit einer bereits vergebenen letzten Nummer). */
 function peekNextInvoiceNumber(dateIso){
   const d = new Date(dateIso+'T00:00:00');
-  const yyyymm = d.getFullYear().toString() + String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = String(d.getFullYear());
+  const prefix = 'RE' + yyyy + '-';
   const journal = loadJournal();
   let maxUsed = 0;
   journal.forEach(r=>{
-    const m = /-(\d{4,})$/.exec(r.number || '');
-    if(m){ const n = parseInt(m[1],10); if(n > maxUsed) maxUsed = n; }
+    if(r.number && r.number.indexOf(prefix) === 0){
+      const n = parseInt(r.number.slice(prefix.length), 10);
+      if(!isNaN(n) && n > maxUsed) maxUsed = n;
+    }
   });
-  const stored = getCounter();
-  const next = Math.max(stored, maxUsed + 1);
-  return { text: 'RE' + yyyymm + '-' + String(next).padStart(4,'0'), next };
+  let next;
+  if(maxUsed > 0){
+    next = maxUsed + 1;
+  } else if(journal.length === 0){
+    /* Allererste Rechnung überhaupt: Startwert aus den Einstellungen nutzen (Bootstrap). */
+    next = Math.max(getCounter(), 1);
+  } else {
+    /* Neues Kalenderjahr, aber es existieren bereits Rechnungen aus anderen Jahren: bei 1 beginnen. */
+    next = 1;
+  }
+  return { text: prefix + String(next).padStart(3,'0'), next };
 }
 const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 function monthYear(dateIso){
@@ -1480,13 +1495,19 @@ function exportJournal(){
   a.remove();
   URL.revokeObjectURL(url);
 }
-function getMaxInvoiceNumber(journal){
-  let max = 0;
+/* Nummern setzen sich pro Jahr fort (RE2026-001 …), darum wird hier je Jahr
+   die höchste vergebene Nummer ermittelt statt eines einzigen globalen Werts —
+   sonst würde ein neues Jahr mit niedrigeren Nummern fälschlich als Rückschritt gelten. */
+function getMaxInvoiceNumbersByYear(journal){
+  const byYear = {};
   (journal||[]).forEach(r=>{
-    const m = /-(\d{4,})$/.exec(r.number || '');
-    if(m){ const n = parseInt(m[1],10); if(n > max) max = n; }
+    const m = /^RE(\d{4})-(\d{3,})$/.exec(r.number || '');
+    if(m){
+      const year = m[1], n = parseInt(m[2],10);
+      if(!byYear[year] || n > byYear[year]) byYear[year] = n;
+    }
   });
-  return max;
+  return byYear;
 }
 
 function importJournal(event){
@@ -1496,13 +1517,19 @@ function importJournal(event){
   reader.onload = function(e){
     try{
       const data = JSON.parse(e.target.result);
-      const currentMax = getMaxInvoiceNumber(loadJournal());
-      const importedMax = data.journal ? getMaxInvoiceNumber(data.journal) : 0;
+      const currentByYear = getMaxInvoiceNumbersByYear(loadJournal());
+      const importedByYear = data.journal ? getMaxInvoiceNumbersByYear(data.journal) : {};
 
-      if(importedMax < currentMax){
+      let regressedYear = null;
+      Object.keys(currentByYear).forEach(year=>{
+        const importedMaxForYear = importedByYear[year] || 0;
+        if(importedMaxForYear < currentByYear[year]) regressedYear = year;
+      });
+
+      if(regressedYear){
         const proceed = confirm(
-          'Achtung: Diese Sicherungsdatei enthält eine niedrigere höchste Rechnungsnummer (' + importedMax + ') ' +
-          'als der aktuelle Stand (' + currentMax + ').\n\n' +
+          'Achtung: Diese Sicherungsdatei enthält für ' + regressedYear + ' eine niedrigere höchste Rechnungsnummer (' +
+          (importedByYear[regressedYear]||0) + ') als der aktuelle Stand (' + currentByYear[regressedYear] + ').\n\n' +
           'Ein Import würde das Risiko doppelt vergebener Rechnungsnummern schaffen und ist buchhalterisch nicht zulässig.\n\n' +
           'Nur fortfahren, wenn du sicher bist, dass die aktuell gespeicherten Daten falsch sind. Trotzdem importieren?'
         );
@@ -1514,7 +1541,7 @@ function importJournal(event){
 
       if(data.journal) saveJournalData(data.journal);
       if(data.settings) saveSettingsData(data.settings);
-      setCounter(Math.max(data.counter || 0, importedMax + 1, getCounter()));
+      if(data.counter) setCounter(Math.max(data.counter, getCounter()));
       persistAfterChange();
       showToast('Import erfolgreich. Seite wird neu geladen …');
       setTimeout(()=> window.location.reload(), 1200);
