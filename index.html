@@ -469,8 +469,14 @@
           </select>
           <label>Rabatt in % (optional)</label>
           <input type="number" id="discountPct" min="0" max="100" step="1" value="0">
+          <label>Bereits erhaltene Anzahlung in € (optional)</label>
+          <input type="number" id="advancePayment" min="0" step="0.01" value="0">
         </div>
       </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-weight:400;color:var(--text);margin-top:16px;">
+        <input type="checkbox" id="isPrivateRealEstate" style="width:auto;margin-top:3px;">
+        <span>Rechnung an eine <b>Privatperson</b> für eine Leistung im Zusammenhang mit einem <b>Grundstück/Bauwerk</b> (z. B. Bauleistung, Kalkulation für privaten Bauherrn) — fügt den gesetzlich vorgeschriebenen Aufbewahrungshinweis (§14b UStG) automatisch hinzu.</span>
+      </label>
     </div>
 
     <div class="card no-print">
@@ -498,6 +504,7 @@
         <table>
           <tr><td>Zwischensumme</td><td id="subtotalDisplay">0,00 €</td></tr>
           <tr id="discountRow" style="display:none;"><td>Rabatt</td><td id="discountDisplay">0,00 €</td></tr>
+          <tr id="advanceRow" style="display:none;"><td>Abzgl. Anzahlung</td><td id="advanceDisplay">0,00 €</td></tr>
           <tr class="grand"><td>Gesamtbetrag*</td><td id="totalDisplay">0,00 €</td></tr>
         </table>
       </div>
@@ -1068,7 +1075,8 @@ function recalcTotal(){
   });
   const discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
   const discountAmt = subtotal * (discountPct/100);
-  const total = subtotal - discountAmt;
+  const advancePayment = parseFloat(document.getElementById('advancePayment').value) || 0;
+  const total = subtotal - discountAmt - advancePayment;
 
   document.getElementById('subtotalDisplay').textContent = fmtMoney(subtotal);
   const discountRow = document.getElementById('discountRow');
@@ -1077,6 +1085,13 @@ function recalcTotal(){
     document.getElementById('discountDisplay').textContent = '- ' + fmtMoney(discountAmt) + ' (' + discountPct + '%)';
   } else {
     discountRow.style.display = 'none';
+  }
+  const advanceRow = document.getElementById('advanceRow');
+  if(advancePayment > 0){
+    advanceRow.style.display = '';
+    document.getElementById('advanceDisplay').textContent = '- ' + fmtMoney(advancePayment);
+  } else {
+    advanceRow.style.display = 'none';
   }
   document.getElementById('totalDisplay').textContent = fmtMoney(total);
   return total;
@@ -1095,6 +1110,8 @@ function resetForm(){
   document.getElementById('invPeriodEnd').value = '';
   document.getElementById('invDate').value = today;
   document.getElementById('discountPct').value = 0;
+  document.getElementById('advancePayment').value = 0;
+  document.getElementById('isPrivateRealEstate').checked = false;
   document.getElementById('itemsBody').innerHTML='';
   addItemRow();
   pendingCorrectionOf = null;
@@ -1178,6 +1195,8 @@ function createInvoice(){
     const invPeriod = getInvPeriodText();
     const paymentTerm = document.getElementById('paymentTerm').value;
     const discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
+    const advancePayment = parseFloat(document.getElementById('advancePayment').value) || 0;
+    const isPrivateRealEstate = document.getElementById('isPrivateRealEstate').checked;
 
     if(!custName || !custStreet || !custCity || !invDate){
       showFormError('Bitte Name, Adresse und Rechnungsdatum des Empfängers vollständig angeben.');
@@ -1218,7 +1237,7 @@ function createInvoice(){
 
     const subtotal = items.reduce((s,it)=> s + it.qty*it.price, 0);
     const discountAmt = subtotal * (discountPct/100);
-    const total = subtotal - discountAmt;
+    const total = subtotal - discountAmt - advancePayment;
     const { text: number, next: nextCounterValue } = peekNextInvoiceNumber(invDate);
 
     const periodIsRange = document.getElementById('periodModeRange').checked;
@@ -1229,7 +1248,7 @@ function createInvoice(){
       periodStart: document.getElementById('invPeriodStart').value,
       periodEnd: document.getElementById('invPeriodEnd').value,
       custName, custStreet, custCity, custNumber, custRef,
-      items, subtotal, discountPct, discountAmt, total,
+      items, subtotal, discountPct, discountAmt, advancePayment, isPrivateRealEstate, total,
       correction,
       createdAt: new Date().toISOString()
     };
@@ -1283,12 +1302,19 @@ function renderInvoicePreview(rec){
   const subtotal = (typeof rec.subtotal === 'number') ? rec.subtotal : rec.total;
   const discountPct = rec.discountPct || 0;
   const discountAmt = rec.discountAmt || 0;
+  const advancePayment = rec.advancePayment || 0;
 
   const sumRows = `
     <tr><td>Zwischensumme</td><td>${fmtMoney(subtotal)}</td></tr>
     ${discountPct > 0 ? `<tr><td>Rabatt (${discountPct}%)</td><td>- ${fmtMoney(discountAmt)}</td></tr>` : ''}
+    ${advancePayment > 0 ? `<tr><td>Abzgl. bereits erhaltener Anzahlung</td><td>- ${fmtMoney(advancePayment)}</td></tr>` : ''}
     <tr class="grand"><td>Gesamtbetrag*</td><td>${fmtMoney(rec.total)}</td></tr>
   `;
+
+  const bauleistungsHinweis = rec.isPrivateRealEstate ? `
+    <div class="inv-korrektur-note" style="background:#eef4f1;border-left-color:var(--accent);">
+      Hinweis: Der Rechnungsempfänger ist gesetzlich verpflichtet, diese Rechnung zwei Jahre lang aufzubewahren (§14b Abs. 1 Satz 5 UStG).
+    </div>` : '';
 
   const html = `
     <div class="inv-top">
@@ -1337,6 +1363,7 @@ function renderInvoicePreview(rec){
       Mit freundlichen Grüßen<br>
       ${escapeHtml(s.firma)}
     </div>
+    ${bauleistungsHinweis}
 
     <div class="inv-footer">
       <div>${escapeHtml(s.firma)}<br>${escapeHtml(s.street)}, ${escapeHtml(s.city)}<br>Tel.: ${escapeHtml(s.phone)}<br>${escapeHtml(s.email)}</div>
@@ -1408,6 +1435,8 @@ function startCorrection(number){
   document.getElementById('invPeriodEnd').value = rec.periodEnd || '';
   document.getElementById('paymentTerm').value = rec.paymentTerm || 'sofort';
   document.getElementById('discountPct').value = rec.discountPct || 0;
+  document.getElementById('advancePayment').value = rec.advancePayment || 0;
+  document.getElementById('isPrivateRealEstate').checked = !!rec.isPrivateRealEstate;
 
   document.getElementById('itemsBody').innerHTML='';
   rec.items.forEach(it=> addItemRow(it));
