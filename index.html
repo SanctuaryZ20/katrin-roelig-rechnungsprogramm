@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rechnungsprogramm – Katrin Rölig</title>
+<style>
+  :root{
+    --accent:#1b4a3a;
+    --accent-light:#e8f0ec;
+    --border:#c9d2ce;
+    --text:#222;
+    --muted:#666;
+    --bg:#f5f6f5;
+  }
+  *{box-sizing:border-box;}
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  html, body{
+    width:100%;
+    overflow-x:hidden;
+  }
+  body{
+    font-family:"Segoe UI",Arial,Helvetica,sans-serif;
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-overflow-scrolling:touch;
+  }
+  header.appbar{
+    background:var(--accent);
+    color:#fff;
+    padding:12px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    position:sticky;
+    top:0;
+    z-index:100;
+  }
+  header.appbar h1{
+    font-size:16px;
+    margin:0;
+    font-weight:600;
+  }
+  nav.tabs{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  nav.tabs button{
+    background:rgba(255,255,255,0.15);
+    color:#fff;
+    border:none;
+    padding:10px 14px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:14px;
+    flex:1 1 auto;
+    min-height:40px;
+    white-space:nowrap;
+    -webkit-tap-highlight-color:transparent;
+  }
+  nav.tabs button.active{
+    background:#fff;
+    color:var(--accent);
+    font-weight:600;
+  }
+  main{
+    max-width:1000px;
+    margin:20px auto;
+    padding:0 14px 80px;
+  }
+  .card{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:18px 18px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    margin-top:0;
+    font-size:16px;
+    color:var(--accent);
+    border-bottom:1px solid var(--border);
+    padding-bottom:8px;
+  }
+  .grid2{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:4px;
+    margin-top:10px;
+  }
+  input[type=text],input[type=number],input[type=date],textarea,select{
+    width:100%;
+    padding:10px 10px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    font-size:16px;
+    font-family:inherit;
+    min-height:44px;
+  }
+  textarea{resize:vertical;min-height:44px;}
+  .table-scroll{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  table.items{
+    width:100%;
+    min-width:640px;
+    border-collapse:collapse;
+    margin-top:12px;
+  }
+  table.items th{
+    background:var(--accent-light);
+    text-align:left;
+    font-size:12px;
+    padding:8px 6px;
+    border:1px solid var(--border);
+  }
+  table.items td{
+    padding:6px;
+    border:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.items td input, table.items td textarea{
+    border:1px solid transparent;
+    padding:8px 6px;
+    min-height:40px;
+  }
+  table.items td input:focus, table.items td textarea:focus{
+    border:1px solid var(--accent);
+  }
+  .row-actions button{
+    background:none;
+    border:none;
+    color:#b00020;
+    cursor:pointer;
+    font-size:20px;
+    min-width:36px;
+    min-height:36px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:12px 18px;
+    border-radius:6px;
+    font-size:15px;
+    cursor:pointer;
+    min-height:44px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn.secondary{
+    background:#fff;
+    color:var(--accent);
+    border:1px solid var(--accent);
+  }
+  .btn.small{
+    padding:6px 10px;
+    font-size:12px;
+  }
+  .btn.danger{
+    background:#b00020;
+  }
+  .totals{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:14px;
+  }
+  .totals table{border-collapse:collapse;width:100%;max-width:320px;}
+  .totals td{padding:6px 10px;font-size:14px;}
+  .totals tr.grand td{
+    font-weight:700;
+    font-size:16px;
+    border-top:2px solid var(--accent);
+  }
+  .toolbar{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+    flex-wrap:wrap;
+  }
+  .toolbar .btn{flex:1 1 auto;}
+  table.journal{
+    width:100%;
+    min-width:560px;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  table.journal th{
+    background:var(--accent-light);
+    padding:8px;
+    text-align:left;
+    border:1px solid var(--border);
+  }
+  table.journal td{
+    padding:8px;
+    border:1px solid var(--border);
+  }
+  .badge{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:10px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .badge.normal{background:#e2f3e6;color:#1b6e2c;}
+  .badge.korrektur{background:#fdeacb;color:#9a5b00;}
+  .hint{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:6px;
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---- Printable invoice (A4, schwarze Schrift, nur Tabellenbalken farbig) ---- */
+  #invoicePreview{
+    background:#fff;
+    padding:20px;
+    font-size:13px;
+    color:#000;
+    width:100%;
+    margin:0 auto;
+    box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  }
+  .inv-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:14px;
+    border-bottom:3px solid var(--accent);
+    padding-bottom:14px;
+    margin-bottom:24px;
+  }
+  .inv-sender{
+    font-size:18px;
+    font-weight:700;
+    color:#000;
+  }
+  .inv-sender .sub{
+    font-size:11px;
+    font-weight:400;
+    color:#000;
+    margin-top:2px;
+  }
+  .inv-meta-box{
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 16px;
+    min-width:240px;
+    font-size:12px;
+    color:#000;
+  }
+  .inv-meta-box div{display:flex;justify-content:space-between;padding:2px 0;gap:16px;}
+  .inv-meta-box b{color:#000;}
+  .inv-body{
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+  .inv-recipient{font-size:13px;line-height:1.5;color:#000;}
+  .inv-title{
+    font-size:20px;
+    font-weight:700;
+    margin:20px 0 4px;
+    color:#000;
+  }
+  .inv-salutation{
+    font-size:12.5px;
+    margin:14px 0 6px;
+    color:#000;
+  }
+  .inv-korrektur-note{
+    background:#fdeacb;
+    border-left:4px solid #9a5b00;
+    padding:8px 12px;
+    font-size:12px;
+    margin-bottom:16px;
+    color:#000;
+  }
+  table.inv-items{
+    width:100%;
+    min-width:480px;
+    border-collapse:collapse;
+    margin-top:10px;
+    page-break-inside:auto;
+  }
+  table.inv-items th{
+    background:var(--accent);
+    color:#fff;
+    padding:8px;
+    font-size:11px;
+    text-align:left;
+  }
+  table.inv-items td{
+    padding:8px;
+    border-bottom:1px solid var(--border);
+    font-size:12px;
+    color:#000;
+    page-break-inside:avoid;
+  }
+  table.inv-items tr:nth-child(even) td{background:#f8faf9;}
+  .inv-sum{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:10px;
+  }
+  .inv-sum table td{padding:3px 10px;font-size:13px;color:#000;}
+  .inv-sum tr.subtotal td{border-top:1px solid var(--border);}
+  .inv-sum tr.grand td{
+    font-weight:700;
+    font-size:15px;
+    border-top:2px solid var(--accent);
+  }
+  .inv-notice{
+    margin-top:18px;
+    font-size:11.5px;
+    color:#000;
+  }
+  .inv-footer{
+    margin-top:40px;
+    border-top:1px solid var(--border);
+    padding-top:10px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:16px;
+    font-size:10.5px;
+    color:#000;
+  }
+  .inv-footer > div{ min-width:150px; }
+
+  /* ---- Desktop: Rechnung optisch auf A4-Breite begrenzen und zentrieren ---- */
+  @media (min-width:600px){
+    #invoicePreview{ max-width:210mm; padding:40px; }
+    #view-preview .toolbar{ max-width:210mm; margin-left:auto; margin-right:auto; }
+  }
+
+  /* ---- Mobil (Smartphone): kompaktere Abstände, Formularfelder untereinander ---- */
+  @media (max-width:700px){
+    header.appbar{ padding:10px 12px; }
+    header.appbar h1{ font-size:15px; width:100%; }
+    nav.tabs button{ font-size:13px; padding:9px 8px; }
+    main{ margin:14px auto; padding:0 10px 90px; }
+    .card{ padding:14px; border-radius:8px; }
+    .grid2{ grid-template-columns:1fr; gap:0; }
+    #storageBanner{ padding:10px 12px !important; font-size:12.5px; }
+    .inv-meta-box{ min-width:0; width:100%; }
+    .inv-sender{ font-size:16px; }
+    .inv-title{ font-size:17px; }
+  }
+
+  @media print{
+    header.appbar, #storageBanner, .no-print{display:none !important;}
+    main{max-width:none;margin:0;padding:0;}
+    .card{border:none;padding:0;margin:0;}
+    #invoicePreview{padding:0 !important;max-width:none;}
+    body{background:#fff;}
+    @page{ size:A4; margin:15mm; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginGate" style="position:fixed;inset:0;background:var(--accent);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;">
+  <div style="background:#fff;color:var(--text);padding:28px 26px;border-radius:12px;max-width:340px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+    <h2 style="margin:0 0 4px;color:var(--accent);font-size:18px;">Rechnungsprogramm</h2>
+    <p class="hint" style="margin-bottom:14px;">Bitte anmelden.</p>
+    <label>Benutzername</label>
+    <input type="text" id="loginUser" autocomplete="username">
+    <label>Passwort</label>
+    <input type="password" id="loginPass" autocomplete="current-password" onkeydown="if(event.key==='Enter') tryLogin();">
+    <button class="btn" style="width:100%;margin-top:16px;" onclick="tryLogin()">Anmelden</button>
+    <p id="loginError" style="color:#a01818;display:none;margin-top:10px;font-size:13px;">Benutzername oder Passwort falsch.</p>
+  </div>
+</div>
+
+<header class="appbar">
+  <h1>Rechnungsprogramm · Katrin Rölig</h1>
+  <nav class="tabs">
+    <button id="tabNewBtn" class="active" onclick="showView('new')">Neue Rechnung</button>
+    <button id="tabJournalBtn" onclick="showView('journal')">Rechnungsjournal</button>
+    <button id="tabSettingsBtn" onclick="showView('settings')">Einstellungen</button>
+  </nav>
+</header>
+
+<div class="no-print" id="storageBanner" style="display:none;padding:10px 24px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"></div>
+
+<main>
+
+  <!-- ================= NEW INVOICE VIEW ================= -->
+  <div id="view-new" class="view active">
+
+    <div class="card no-print" id="correctionBanner" style="display:none;background:#fdeacb;">
+      <strong>Rechnungskorrektur</strong>
+      <p style="margin:6px 0 0;font-size:13px;" id="corrIntroText">
+        Diese neue Rechnung korrigiert und ersetzt die folgende Rechnung. Sie erhält automatisch eine neue, fortlaufende Rechnungsnummer — die ursprüngliche Nummer bleibt für die Buchhaltung erhalten.
+      </p>
+      <div class="grid2">
+        <div>
+          <label>Nummer der Original-Rechnung</label>
+          <input type="text" id="corrOrigNumber" placeholder="z.B. RE202608-0001">
+        </div>
+        <div>
+          <label>Datum der Original-Rechnung</label>
+          <input type="date" id="corrOrigDate">
+        </div>
+      </div>
+      <p class="hint" id="corrManualHint" style="display:none;">Diese Original-Rechnung ist nicht (mehr) im Journal vorhanden — Nummer und Datum bitte manuell eintragen, damit die Korrektur trotzdem korrekt zugeordnet werden kann.</p>
+      <label>Korrekturgrund (erscheint auf der Rechnung)</label>
+      <input type="text" id="corrReason" placeholder="z.B. Preis korrigiert, Position ergänzt, Rechnung storniert …">
+    </div>
+
+    <div class="card no-print">
+      <h2>Empfänger</h2>
+      <div class="grid2">
+        <div>
+          <label>Name / Firma des Kunden</label>
+          <input type="text" id="custName" placeholder="Firma oder Name">
+          <label>Straße und Hausnummer</label>
+          <input type="text" id="custStreet">
+          <label>PLZ und Ort</label>
+          <input type="text" id="custCity">
+          <label>Kundennummer (optional)</label>
+          <input type="text" id="custNumber" placeholder="z.B. 10004">
+          <label>Ihr Zeichen / Projekt-Nr. (optional)</label>
+          <input type="text" id="custRef" placeholder="z.B. Projekt Musterstraße">
+        </div>
+        <div>
+          <label>Rechnungsdatum</label>
+          <input type="date" id="invDate">
+          <label>Leistung *</label>
+          <div style="display:flex;gap:16px;margin-top:2px;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400;margin:0;color:var(--text);">
+              <input type="radio" name="periodMode" id="periodModeSingle" value="single" checked style="width:auto;" onchange="togglePeriodMode()"> Einzelnes Datum
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400;margin:0;color:var(--text);">
+              <input type="radio" name="periodMode" id="periodModeRange" value="range" style="width:auto;" onchange="togglePeriodMode()"> Zeitraum
+            </label>
+          </div>
+          <div id="periodSingleWrap" style="margin-top:6px;">
+            <input type="date" id="invPeriodSingle">
+          </div>
+          <div id="periodRangeWrap" style="display:none;margin-top:6px;gap:8px;">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <input type="date" id="invPeriodStart" style="flex:1 1 130px;">
+              <input type="date" id="invPeriodEnd" style="flex:1 1 130px;">
+            </div>
+          </div>
+          <label>Zahlungsziel</label>
+          <select id="paymentTerm">
+            <option value="sofort">Zahlbar sofort nach Rechnungserhalt ohne Abzug</option>
+            <option value="7">Zahlbar innerhalb von 7 Tagen ohne Abzug</option>
+            <option value="14" selected>Zahlbar innerhalb von 14 Tagen ohne Abzug</option>
+            <option value="30">Zahlbar innerhalb von 30 Tagen ohne Abzug</option>
+          </select>
+          <label>Rabatt in % (optional)</label>
+          <input type="number" id="discountPct" min="0" max="100" step="1" value="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Positionen</h2>
+      <div class="table-scroll">
+        <table class="items" id="itemsTable">
+          <thead>
+            <tr>
+              <th style="width:26px;">#</th>
+              <th>Bezeichnung / Beschreibung</th>
+              <th style="width:70px;">Menge</th>
+              <th style="width:90px;">Einheit</th>
+              <th style="width:100px;">Einzel €</th>
+              <th style="width:100px;">Gesamt €</th>
+              <th style="width:30px;"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:4px;">Tipp: Tabelle lässt sich seitlich wischen/scrollen.</p>
+      <button class="btn secondary small" style="margin-top:10px;" onclick="addItemRow()">+ Position hinzufügen</button>
+
+      <div class="totals">
+        <table>
+          <tr><td>Zwischensumme</td><td id="subtotalDisplay">0,00 €</td></tr>
+          <tr id="discountRow" style="display:none;"><td>Rabatt</td><td id="discountDisplay">0,00 €</td></tr>
+          <tr class="grand"><td>Gesamtbetrag*</td><td id="totalDisplay">0,00 €</td></tr>
+        </table>
+      </div>
+      <p class="hint">*Umsatzsteuerfreie Leistung gemäß §19 UStG (Kleinunternehmerregelung).</p>
+    </div>
+
+    <div class="card no-print" id="formError" style="display:none;background:#fdecea;border-color:#e0857a;">
+      <strong style="color:#a01818;">Bitte prüfen:</strong>
+      <span id="formErrorText" style="color:#a01818;"></span>
+    </div>
+
+    <div class="toolbar no-print">
+      <button class="btn" onclick="createInvoice()">Rechnung erstellen</button>
+      <button class="btn secondary" onclick="resetForm()">Formular leeren</button>
+    </div>
+  </div>
+
+  <!-- ================= PREVIEW ================= -->
+  <div id="view-preview" class="view">
+    <div class="toolbar no-print" style="margin-bottom:16px;">
+      <button class="btn" onclick="window.print()">Als PDF drucken / speichern</button>
+      <button class="btn secondary" onclick="showView('journal')">Zurück zum Journal</button>
+    </div>
+    <div class="card" id="invoicePreview"></div>
+  </div>
+
+  <!-- ================= JOURNAL ================= -->
+  <div id="view-journal" class="view">
+    <div class="card no-print">
+      <h2>Rechnungsjournal</h2>
+      <p class="hint">Alle erstellten Rechnungen, fortlaufend nummeriert. Rechnungen können hier nachträglich als PDF geöffnet oder korrigiert werden – eine Korrektur erhält immer eine neue Nummer, die ursprüngliche Rechnung bleibt unverändert erhalten.</p>
+      <div class="table-scroll">
+        <table class="journal">
+          <thead>
+            <tr><th>Nr.</th><th>Datum</th><th>Empfänger</th><th>Betrag</th><th>Typ</th><th></th></tr>
+          </thead>
+          <tbody id="journalBody"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:14px;">Fehlt eine bereits ausgestellte Rechnung hier im Journal (z. B. durch einen Datenverlust)? Sie darf trotzdem niemals einfach "verschwinden" — buchhalterisch korrekt ist eine Korrektur/Stornorechnung mit neuer Nummer, die auf die ursprüngliche verweist:</p>
+      <div class="toolbar">
+        <button class="btn secondary" onclick="startManualCorrection()">Korrektur für nicht gelistete Rechnung erstellen</button>
+      </div>
+    </div>
+    <div class="card no-print">
+      <h2>Dauerhafte Speicherung</h2>
+      <p class="hint" id="fsSupportHint"></p>
+      <p class="hint" id="fsStatusText" style="font-size:13px;color:var(--text);"></p>
+      <div class="toolbar" id="fsConnectButtons">
+        <button class="btn" onclick="connectJournalFile(true)">Neue Journal-Datei anlegen</button>
+        <button class="btn secondary" onclick="connectJournalFile(false)">Vorhandene Journal-Datei öffnen</button>
+      </div>
+      <p class="hint" style="margin-top:16px;">Zusätzliche manuelle Sicherheitskopie (unabhängig von der verknüpften Datei):</p>
+      <div class="toolbar">
+        <button class="btn secondary" onclick="exportJournal()">Journal exportieren (Backup)</button>
+        <button class="btn secondary" onclick="document.getElementById('importFile').click()">Journal importieren</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJournal(event)">
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SETTINGS ================= -->
+  <div id="view-settings" class="view">
+    <div class="card no-print">
+      <h2>Absenderdaten (Katrin Rölig)</h2>
+      <div class="grid2">
+        <div>
+          <label>Name</label>
+          <input type="text" id="setFirma" value="Katrin Rölig">
+          <label>Straße und Hausnummer</label>
+          <input type="text" id="setStreet" placeholder="Straße und Hausnummer eintragen">
+          <label>PLZ und Ort</label>
+          <input type="text" id="setCity" placeholder="PLZ und Ort eintragen">
+          <label>Telefon</label>
+          <input type="text" id="setPhone" placeholder="Telefonnummer eintragen">
+          <label>E-Mail</label>
+          <input type="text" id="setEmail" placeholder="E-Mail eintragen">
+        </div>
+        <div>
+          <label>Steuernummer</label>
+          <input type="text" id="setTaxId" placeholder="Steuernummer eintragen">
+          <label>Kontoinhaber</label>
+          <input type="text" id="setKontoinhaber" value="Katrin Rölig">
+          <label>IBAN</label>
+          <input type="text" id="setIban" placeholder="IBAN eintragen">
+          <label>BIC</label>
+          <input type="text" id="setBic" placeholder="BIC eintragen">
+          <label>Bank</label>
+          <input type="text" id="setBank" placeholder="Bank eintragen">
+        </div>
+      </div>
+      <p class="hint" style="color:#a01818;">Bitte diese Daten einmalig ausfüllen und speichern — aus Datenschutzgründen sind hier keine echten Bankdaten vorausgefüllt.</p>
+      <button class="btn" style="margin-top:14px;" onclick="saveSettings()">Absenderdaten speichern</button>
+      <p class="hint" id="settingsSaved" style="display:none;color:#1b6e2c;">Gespeichert.</p>
+    </div>
+
+    <div class="card no-print">
+      <h2>Rechnungsnummerierung</h2>
+      <label>Zuletzt vergebene Rechnungsnummer (falls schon Rechnungen existieren, sonst leer lassen)</label>
+      <input type="text" id="setLastNumber" placeholder="z.B. RE202606-0018">
+      <label>Nächste Nummer beginnt bei laufender Nummer</label>
+      <input type="number" id="setNextCounter" min="1" value="1">
+      <button class="btn secondary" style="margin-top:10px;" onclick="saveNumbering()">Nummerierung speichern</button>
+      <p class="hint">Das Programm vergibt danach automatisch fortlaufende Nummern ohne Lücke, im Format RE-JJJJMM-laufendeNummer. Bitte nur einmalig beim ersten Einrichten anpassen.</p>
+    </div>
+
+    <div class="card no-print">
+      <h2>Sitzung</h2>
+      <button class="btn secondary" onclick="logout()">Abmelden</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+/* ---------------- Storage (mit Fallback, falls localStorage blockiert ist) ---------------- */
+const LS_JOURNAL = 'kr_invoice_journal';
+const LS_SETTINGS = 'kr_sender_settings';
+const LS_COUNTER = 'kr_invoice_counter';
+
+let memoryStore = {};
+let storageAvailable = (function(){
+  try{
+    localStorage.setItem('__kr_test__','1');
+    localStorage.removeItem('__kr_test__');
+    return true;
+  }catch(e){
+    return false;
+  }
+})();
+
+function lsGet(key){
+  if(storageAvailable){
+    try{ return localStorage.getItem(key); }catch(e){ storageAvailable = false; }
+  }
+  return (key in memoryStore) ? memoryStore[key] : null;
+}
+function lsSet(key, value){
+  if(storageAvailable){
+    try{ localStorage.setItem(key, value); return; }catch(e){ storageAvailable = false; }
+  }
+  memoryStore[key] = value;
+}
+
+function loadJournal(){ return JSON.parse(lsGet(LS_JOURNAL) || '[]'); }
+function saveJournalData(j){ lsSet(LS_JOURNAL, JSON.stringify(j)); }
+
+function defaultSettings(){
+  return {
+    firma: 'Katrin Rölig',
+    street: 'Kesselsdorfer Str. 336c',
+    city: '01156 Dresden',
+    phone: '0173/92500470',
+    email: 'katrin.roelig@vodafone.de',
+    taxId: '203/263/07018',
+    kontoinhaber: 'Katrin Rölig',
+    iban: 'DE03 1203 0000 1308 5033 07',
+    bic: 'BYLADEM1001',
+    bank: 'Deutsche Kreditbank AG'
+  };
+}
+function loadSettings(){
+  return JSON.parse(lsGet(LS_SETTINGS) || 'null') || defaultSettings();
+}
+function saveSettingsData(s){ lsSet(LS_SETTINGS, JSON.stringify(s)); }
+
+function getCounter(){
+  const v = lsGet(LS_COUNTER);
+  return v ? parseInt(v,10) : 1;
+}
+function setCounter(n){ lsSet(LS_COUNTER, String(n)); }
+
+/* ---------------- Dauerhafte Datei-Speicherung (File System Access API) ---------------- */
+/* Garantiert, dass Daten nicht nur im flüchtigen Browser-Speicher liegen, sondern
+   in einer echten Datei auf der Festplatte. In Chrome/Edge wird direkt in die
+   verknüpfte Datei geschrieben. In Browsern ohne diese API (Firefox/Safari) wird
+   nach jeder Rechnung automatisch eine Sicherungsdatei heruntergeladen. */
+const IDB_NAME = 'kr_invoice_db';
+const IDB_STORE = 'handles';
+let journalFileHandle = null;
+
+function supportsFileSystemAccess(){
+  return typeof window.showSaveFilePicker === 'function' && typeof window.showOpenFilePicker === 'function';
+}
+
+function idbOpen(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, val){
+  try{
+    const db = await idbOpen();
+    return new Promise((resolve, reject)=>{
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ /* IndexedDB nicht verfügbar - Verknüpfung gilt nur für diese Sitzung */ }
+}
+async function idbGet(key){
+  try{
+    const db = await idbOpen();
+    return new Promise((resolve, reject)=>{
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }catch(e){ return null; }
+}
+
+async function connectJournalFile(createNew){
+  try{
+    let handle;
+    if(createNew){
+      handle = await window.showSaveFilePicker({
+        suggestedName: 'rechnungsjournal.json',
+        types: [{ description: 'Rechnungsjournal', accept: {'application/json': ['.json']} }]
+      });
+    } else {
+      const picked = await window.showOpenFilePicker({
+        types: [{ description: 'Rechnungsjournal', accept: {'application/json': ['.json']} }]
+      });
+      handle = picked[0];
+    }
+    journalFileHandle = handle;
+    await idbSet('journalHandle', handle);
+    if(!createNew) await syncFromJournalFile();
+    await writeJournalFile();
+    updateStorageStatus();
+    showToast('Journal-Datei verknüpft: ' + handle.name);
+    renderJournal();
+  }catch(err){
+    if(err.name !== 'AbortError'){
+      showToast('Verknüpfung fehlgeschlagen: ' + err.message, true);
+    }
+  }
+}
+
+async function writeJournalFile(){
+  if(!journalFileHandle) return false;
+  try{
+    const perm = await journalFileHandle.requestPermission({mode:'readwrite'});
+    if(perm !== 'granted') return false;
+    const writable = await journalFileHandle.createWritable();
+    const data = { journal: loadJournal(), settings: loadSettings(), counter: getCounter() };
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+    return true;
+  }catch(err){
+    console.error('Journal-Datei-Schreibfehler', err);
+    showToast('Achtung: Die verknüpfte Datei konnte nicht aktualisiert werden. Bitte zusätzlich "Journal exportieren" nutzen.', true);
+    return false;
+  }
+}
+
+async function syncFromJournalFile(){
+  if(!journalFileHandle) return;
+  try{
+    const file = await journalFileHandle.getFile();
+    const text = await file.text();
+    if(!text) return;
+    const data = JSON.parse(text);
+    if(data.journal) saveJournalData(data.journal);
+    if(data.settings) saveSettingsData(data.settings);
+    if(data.counter) setCounter(data.counter);
+  }catch(err){ /* Datei ggf. noch leer beim ersten Anlegen */ }
+}
+
+async function tryReconnectJournalFile(){
+  if(!supportsFileSystemAccess()) return;
+  const handle = await idbGet('journalHandle');
+  if(!handle) return;
+  try{
+    const perm = await handle.queryPermission({mode:'readwrite'});
+    journalFileHandle = handle;
+    if(perm === 'granted'){
+      await syncFromJournalFile();
+      renderJournal();
+    }
+    updateStorageStatus();
+  }catch(err){ /* Handle nicht mehr gültig (Datei verschoben/gelöscht) */ }
+}
+
+async function reauthorizeJournalFile(){
+  if(!journalFileHandle) return;
+  try{
+    const perm = await journalFileHandle.requestPermission({mode:'readwrite'});
+    if(perm === 'granted'){
+      await syncFromJournalFile();
+      renderJournal();
+      updateStorageStatus();
+      showToast('Zugriff auf Journal-Datei erneuert.');
+    }
+  }catch(err){
+    showToast('Zugriff konnte nicht erneuert werden: ' + err.message, true);
+  }
+}
+
+function updateStorageStatus(){
+  const banner = document.getElementById('storageBanner');
+  const hint = document.getElementById('fsSupportHint');
+  const statusText = document.getElementById('fsStatusText');
+  const connectButtons = document.getElementById('fsConnectButtons');
+
+  if(journalFileHandle){
+    banner.style.display = 'flex';
+    banner.style.background = '#e2f3e6';
+    banner.style.color = '#1b6e2c';
+    banner.innerHTML = '🔗 Dauerhaft gespeichert in Datei: <b>' + escapeHtml(journalFileHandle.name) + '</b>';
+    if(statusText){
+      statusText.textContent = 'Verknüpft mit: ' + journalFileHandle.name + '. Jede Rechnung wird automatisch in dieser Datei gespeichert.';
+    }
+    if(connectButtons){
+      connectButtons.innerHTML = '<button class="btn secondary" onclick="reauthorizeJournalFile()">Zugriff erneuern</button><button class="btn secondary" onclick="connectJournalFile(false)">Andere Datei öffnen</button>';
+    }
+  } else if(supportsFileSystemAccess()){
+    banner.style.display = 'flex';
+    banner.style.background = '#fdecea';
+    banner.style.color = '#a01818';
+    banner.innerHTML = '⚠️ Noch keine Journal-Datei verknüpft — Daten sind nur im Browser gespeichert und können verloren gehen. <button class="btn small" style="margin-left:8px;" onclick="connectJournalFile(true)">Jetzt verknüpfen</button>';
+    if(hint) hint.textContent = 'Empfohlen: Eine Journal-Datei auf der Festplatte anlegen. Danach wird jede Rechnung automatisch dort mitgespeichert – unabhängig vom Browser-Speicher.';
+    if(statusText) statusText.textContent = 'Status: nicht verknüpft.';
+  } else {
+    banner.style.display = 'flex';
+    banner.style.background = '#fdecea';
+    banner.style.color = '#a01818';
+    banner.innerHTML = '⚠️ Dieser Browser unterstützt keine direkte Datei-Speicherung. Nach jeder Rechnung wird automatisch eine Sicherungsdatei heruntergeladen — bitte aufbewahren und beim nächsten Öffnen ggf. über "Journal importieren" wieder einspielen.';
+    if(hint) hint.textContent = 'Dieser Browser unterstützt keine direkte Datei-Verknüpfung. Nutze stattdessen Chrome oder Edge für automatische Speicherung in einer Datei, oder importiere/exportiere die Sicherungsdatei manuell.';
+    if(statusText) statusText.textContent = 'Automatische Sicherungsdatei aktiv (Downloads-Ordner).';
+    if(connectButtons) connectButtons.innerHTML = '<p class="hint">Datei-Verknüpfung wird von diesem Browser nicht unterstützt.</p>';
+  }
+}
+
+async function persistAfterChange(){
+  if(journalFileHandle){
+    await writeJournalFile();
+  } else if(!supportsFileSystemAccess()){
+    autoDownloadBackup();
+  }
+}
+
+function autoDownloadBackup(){
+  const data = { journal: loadJournal(), settings: loadSettings(), counter: getCounter() };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'rechnungsjournal_auto.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------------- Login-Gate ----------------
+   Hinweis: Dies ist ein einfacher Zugangsschutz gegen zufälliges Mitlesen,
+   KEINE echte Sicherheit — der Code läuft im Browser, ein technisch versierter
+   Betrachter kann die Quelle einsehen. Für ein Team-Tool ohne sensible Login-
+   Daten mit festem Passwort ist das ein angemessener, einfacher Kompromiss. */
+const APP_USERNAME = 'Katrin Rölig';
+const APP_PASSWORD = 'Karin123';
+const LS_LOGIN = 'kr_logged_in';
+
+function tryLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if(u === APP_USERNAME && p === APP_PASSWORD){
+    lsSet(LS_LOGIN, '1');
+    document.getElementById('loginGate').style.display = 'none';
+    document.getElementById('loginError').style.display = 'none';
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+function logout(){
+  lsSet(LS_LOGIN, '0');
+  window.location.reload();
+}
+
+/* ---------------- Init ---------------- */
+let pendingCorrectionOf = null; // {number, date}
+
+window.onload = function(){
+  try{
+    if(lsGet(LS_LOGIN) === '1'){
+      document.getElementById('loginGate').style.display = 'none';
+    }
+    document.getElementById('loginUser').focus();
+  }catch(err){ /* Login-UI konnte nicht initialisiert werden, Formular bleibt sichtbar */ }
+  try{
+    const s = loadSettings();
+    document.getElementById('setFirma').value = s.firma;
+    document.getElementById('setStreet').value = s.street;
+    document.getElementById('setCity').value = s.city;
+    document.getElementById('setPhone').value = s.phone;
+    document.getElementById('setEmail').value = s.email;
+    document.getElementById('setTaxId').value = s.taxId;
+    document.getElementById('setKontoinhaber').value = s.kontoinhaber || s.firma;
+    document.getElementById('setIban').value = s.iban;
+    document.getElementById('setBic').value = s.bic;
+    document.getElementById('setBank').value = s.bank;
+    document.getElementById('setNextCounter').value = getCounter();
+
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('invDate').value = today;
+    document.getElementById('invPeriodSingle').value = today;
+
+    addItemRow();
+    renderJournal();
+    updateStorageStatus();
+    tryReconnectJournalFile();
+
+    if(!storageAvailable && !supportsFileSystemAccess()){
+      showToast('Achtung: Der Browser blockiert die dauerhafte Speicherung. Bitte eine Journal-Datei verknüpfen oder nach jeder Rechnung über "Journal exportieren" sichern.', true);
+    }
+  }catch(err){
+    showToast('Fehler beim Start des Programms: ' + err.message, true);
+    console.error(err);
+  }
+};
+
+function showFormError(msg){
+  const box = document.getElementById('formError');
+  document.getElementById('formErrorText').textContent = ' ' + msg;
+  box.style.display = 'block';
+  box.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function hideFormError(){
+  document.getElementById('formError').style.display = 'none';
+}
+
+function showToast(msg, persistent){
+  let toast = document.getElementById('krToast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'krToast';
+    toast.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;width:min(560px, calc(100vw - 32px));z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.3);';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  if(toast._timer) clearTimeout(toast._timer);
+  if(!persistent){
+    toast._timer = setTimeout(()=>{ toast.style.display = 'none'; }, 4000);
+  }
+}
+
+function togglePeriodMode(){
+  const isRange = document.getElementById('periodModeRange').checked;
+  document.getElementById('periodSingleWrap').style.display = isRange ? 'none' : 'block';
+  document.getElementById('periodRangeWrap').style.display = isRange ? 'flex' : 'none';
+}
+
+function getInvPeriodText(){
+  const isRange = document.getElementById('periodModeRange').checked;
+  if(isRange){
+    const start = document.getElementById('invPeriodStart').value;
+    const end = document.getElementById('invPeriodEnd').value;
+    if(!start || !end) return '';
+    return fmtDate(start) + ' – ' + fmtDate(end);
+  } else {
+    const single = document.getElementById('invPeriodSingle').value;
+    if(!single) return '';
+    return fmtDate(single);
+  }
+}
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  const map = {new:'tabNewBtn', journal:'tabJournalBtn', settings:'tabSettingsBtn'};
+  if(map[name]) document.getElementById(map[name]).classList.add('active');
+}
+
+/* ---------------- Items table ---------------- */
+function addItemRow(data){
+  data = data || {desc:'',qty:1,unit:'Stück',price:0};
+  const tbody = document.getElementById('itemsBody');
+  const idx = tbody.children.length + 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${idx}</td>
+    <td><textarea class="f-desc">${data.desc}</textarea></td>
+    <td><input type="number" class="f-qty" min="0" step="1" value="${data.qty}" oninput="recalcRow(this)"></td>
+    <td><input type="text" class="f-unit" value="${data.unit}"></td>
+    <td><input type="number" class="f-price" min="0" step="0.01" value="${data.price}" oninput="recalcRow(this)"></td>
+    <td class="f-total">0,00</td>
+    <td class="row-actions"><button onclick="removeRow(this)" title="Position entfernen">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  recalcRow(tr.querySelector('.f-qty'));
+}
+function removeRow(btn){
+  const tbody = document.getElementById('itemsBody');
+  if(tbody.children.length <= 1) return;
+  btn.closest('tr').remove();
+  Array.from(tbody.children).forEach((tr,i)=> tr.children[0].textContent = i+1);
+  recalcTotal();
+}
+function recalcRow(el){
+  const tr = el.closest('tr');
+  const qty = parseFloat(tr.querySelector('.f-qty').value) || 0;
+  const price = parseFloat(tr.querySelector('.f-price').value) || 0;
+  tr.querySelector('.f-total').textContent = (qty*price).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  recalcTotal();
+}
+function recalcTotal(){
+  let subtotal = 0;
+  document.querySelectorAll('#itemsBody tr').forEach(tr=>{
+    const qty = parseFloat(tr.querySelector('.f-qty').value) || 0;
+    const price = parseFloat(tr.querySelector('.f-price').value) || 0;
+    subtotal += qty*price;
+  });
+  const discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
+  const discountAmt = subtotal * (discountPct/100);
+  const total = subtotal - discountAmt;
+
+  document.getElementById('subtotalDisplay').textContent = fmtMoney(subtotal);
+  const discountRow = document.getElementById('discountRow');
+  if(discountPct > 0){
+    discountRow.style.display = '';
+    document.getElementById('discountDisplay').textContent = '- ' + fmtMoney(discountAmt) + ' (' + discountPct + '%)';
+  } else {
+    discountRow.style.display = 'none';
+  }
+  document.getElementById('totalDisplay').textContent = fmtMoney(total);
+  return total;
+}
+function resetForm(){
+  document.getElementById('custName').value='';
+  document.getElementById('custStreet').value='';
+  document.getElementById('custCity').value='';
+  document.getElementById('custNumber').value='';
+  document.getElementById('custRef').value='';
+  document.getElementById('periodModeSingle').checked = true;
+  togglePeriodMode();
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('invPeriodSingle').value = today;
+  document.getElementById('invPeriodStart').value = '';
+  document.getElementById('invPeriodEnd').value = '';
+  document.getElementById('invDate').value = today;
+  document.getElementById('discountPct').value = 0;
+  document.getElementById('itemsBody').innerHTML='';
+  addItemRow();
+  pendingCorrectionOf = null;
+  document.getElementById('correctionBanner').style.display='none';
+  hideFormError();
+}
+
+/* ---------------- Settings ---------------- */
+function saveSettings(){
+  const s = {
+    firma: document.getElementById('setFirma').value,
+    street: document.getElementById('setStreet').value,
+    city: document.getElementById('setCity').value,
+    phone: document.getElementById('setPhone').value,
+    email: document.getElementById('setEmail').value,
+    taxId: document.getElementById('setTaxId').value,
+    kontoinhaber: document.getElementById('setKontoinhaber').value,
+    iban: document.getElementById('setIban').value,
+    bic: document.getElementById('setBic').value,
+    bank: document.getElementById('setBank').value
+  };
+  saveSettingsData(s);
+  persistAfterChange();
+  const msg = document.getElementById('settingsSaved');
+  msg.style.display='block';
+  setTimeout(()=>msg.style.display='none', 2000);
+}
+function saveNumbering(){
+  const n = parseInt(document.getElementById('setNextCounter').value,10) || 1;
+  setCounter(n);
+  persistAfterChange();
+  showToast('Gespeichert: Nächste Rechnungsnummer läuft ab laufender Nummer ' + n + '.');
+}
+
+/* ---------------- Number formatting ---------------- */
+function fmtMoney(n){
+  return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+}
+function fmtDate(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('de-DE');
+}
+/* Ermittelt die nächste Rechnungsnummer NICHT nur aus dem gespeicherten Zähler,
+   sondern zusätzlich aus der höchsten bereits im Journal vorhandenen Nummer.
+   So kann es auch dann nie zu einer doppelt vergebenen oder übersprungenen
+   Nummer kommen, wenn der Zähler durch einen Fehler/Import veraltet ist. */
+function peekNextInvoiceNumber(dateIso){
+  const d = new Date(dateIso+'T00:00:00');
+  const yyyymm = d.getFullYear().toString() + String(d.getMonth()+1).padStart(2,'0');
+  const journal = loadJournal();
+  let maxUsed = 0;
+  journal.forEach(r=>{
+    const m = /-(\d{4,})$/.exec(r.number || '');
+    if(m){ const n = parseInt(m[1],10); if(n > maxUsed) maxUsed = n; }
+  });
+  const stored = getCounter();
+  const next = Math.max(stored, maxUsed + 1);
+  return { text: 'RE' + yyyymm + '-' + String(next).padStart(4,'0'), next };
+}
+const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+function monthYear(dateIso){
+  const d = new Date(dateIso+'T00:00:00');
+  return MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
+}
+function dueDate(dateIso, paymentTerm){
+  const days = paymentTerm==='sofort' ? 0 : parseInt(paymentTerm,10);
+  const d = new Date(dateIso+'T00:00:00');
+  d.setDate(d.getDate()+days);
+  return d.toLocaleDateString('de-DE');
+}
+
+/* ---------------- Create invoice ---------------- */
+function createInvoice(){
+  try{
+    const custName = document.getElementById('custName').value.trim();
+    const custStreet = document.getElementById('custStreet').value.trim();
+    const custCity = document.getElementById('custCity').value.trim();
+    const custNumber = document.getElementById('custNumber').value.trim();
+    const custRef = document.getElementById('custRef').value.trim();
+    const invDate = document.getElementById('invDate').value;
+    const invPeriod = getInvPeriodText();
+    const paymentTerm = document.getElementById('paymentTerm').value;
+    const discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
+
+    if(!custName || !custStreet || !custCity || !invDate){
+      showFormError('Bitte Name, Adresse und Rechnungsdatum des Empfängers vollständig angeben.');
+      return;
+    }
+    if(!invPeriod){
+      const isRange = document.getElementById('periodModeRange').checked;
+      showFormError('Bitte ' + (isRange ? 'Start- und Enddatum des Zeitraums' : 'das Leistungsdatum') + ' angeben – das ist eine Pflichtangabe auf jeder Rechnung.');
+      document.getElementById(isRange ? 'invPeriodStart' : 'invPeriodSingle').focus();
+      return;
+    }
+
+    const items = [];
+    document.querySelectorAll('#itemsBody tr').forEach(tr=>{
+      const desc = tr.querySelector('.f-desc').value.trim();
+      const qty = parseFloat(tr.querySelector('.f-qty').value) || 0;
+      const unit = tr.querySelector('.f-unit').value.trim();
+      const price = parseFloat(tr.querySelector('.f-price').value) || 0;
+      if(desc || qty || price) items.push({desc,qty,unit,price});
+    });
+    if(items.length===0){
+      showFormError('Bitte mindestens eine Position eingeben.');
+      return;
+    }
+
+    let correction = null;
+    if(pendingCorrectionOf){
+      const origNumber = document.getElementById('corrOrigNumber').value.trim();
+      const origDate = document.getElementById('corrOrigDate').value;
+      const reason = document.getElementById('corrReason').value.trim();
+      if(!origNumber || !origDate){
+        showFormError('Bitte Nummer und Datum der Original-Rechnung angeben, damit die Korrektur eindeutig zugeordnet werden kann.');
+        return;
+      }
+      correction = { originalNumber: origNumber, originalDate: origDate, reason: reason };
+    }
+    hideFormError();
+
+    const subtotal = items.reduce((s,it)=> s + it.qty*it.price, 0);
+    const discountAmt = subtotal * (discountPct/100);
+    const total = subtotal - discountAmt;
+    const { text: number, next: nextCounterValue } = peekNextInvoiceNumber(invDate);
+
+    const periodIsRange = document.getElementById('periodModeRange').checked;
+    const record = {
+      number, date: invDate, period: invPeriod, paymentTerm,
+      periodIsRange,
+      periodSingle: document.getElementById('invPeriodSingle').value,
+      periodStart: document.getElementById('invPeriodStart').value,
+      periodEnd: document.getElementById('invPeriodEnd').value,
+      custName, custStreet, custCity, custNumber, custRef,
+      items, subtotal, discountPct, discountAmt, total,
+      correction,
+      createdAt: new Date().toISOString()
+    };
+
+    const journal = loadJournal();
+    journal.push(record);
+    saveJournalData(journal);
+    setCounter(nextCounterValue + 1);
+    persistAfterChange();
+
+    renderInvoicePreview(record);
+    renderJournal();
+    pendingCorrectionOf = null;
+    document.getElementById('correctionBanner').style.display='none';
+    showView('preview');
+  }catch(err){
+    showFormError('Es ist ein technischer Fehler aufgetreten: ' + err.message + ' — bitte Seite neu laden und erneut versuchen.');
+    console.error(err);
+  }
+}
+
+/* ---------------- Preview rendering ---------------- */
+function renderInvoicePreview(rec){
+  const s = loadSettings();
+  const termText = {
+    sofort:'Zahlbar sofort nach Rechnungserhalt ohne Abzug.',
+    '7':'Zahlbar innerhalb von 7 Tagen ohne Abzug.',
+    '14':'Zahlbar innerhalb von 14 Tagen ohne Abzug.',
+    '30':'Zahlbar innerhalb von 30 Tagen ohne Abzug.'
+  }[rec.paymentTerm] || 'Zahlbar sofort nach Rechnungserhalt ohne Abzug.';
+
+  let rows = '';
+  rec.items.forEach((it,i)=>{
+    rows += `<tr>
+      <td>${i+1}</td>
+      <td>${escapeHtml(it.desc).replace(/\n/g,'<br>')}</td>
+      <td>${it.qty}</td>
+      <td>${escapeHtml(it.unit)}</td>
+      <td>${fmtMoney(it.price)}</td>
+      <td>${fmtMoney(it.qty*it.price)}</td>
+    </tr>`;
+  });
+
+  const korrekturNote = rec.correction ? `
+    <div class="inv-korrektur-note">
+      Diese Rechnung korrigiert und ersetzt Rechnung <b>${rec.correction.originalNumber}</b>
+      vom ${fmtDate(rec.correction.originalDate)}.
+      ${rec.correction.reason ? 'Grund: ' + escapeHtml(rec.correction.reason) : ''}
+    </div>` : '';
+
+  const subtotal = (typeof rec.subtotal === 'number') ? rec.subtotal : rec.total;
+  const discountPct = rec.discountPct || 0;
+  const discountAmt = rec.discountAmt || 0;
+
+  const sumRows = `
+    <tr><td>Zwischensumme</td><td>${fmtMoney(subtotal)}</td></tr>
+    ${discountPct > 0 ? `<tr><td>Rabatt (${discountPct}%)</td><td>- ${fmtMoney(discountAmt)}</td></tr>` : ''}
+    <tr class="grand"><td>Gesamtbetrag*</td><td>${fmtMoney(rec.total)}</td></tr>
+  `;
+
+  const html = `
+    <div class="inv-top">
+      <div class="inv-sender">
+        ${escapeHtml(s.firma)}
+        <div class="sub">${escapeHtml(s.street)} · ${escapeHtml(s.city)}<br>Tel.: ${escapeHtml(s.phone)} · ${escapeHtml(s.email)}</div>
+      </div>
+      <div class="inv-meta-box">
+        <div><span>Rechnungsnr.</span><b>${rec.number}</b></div>
+        <div><span>Rechnungsdatum</span><b>${fmtDate(rec.date)}</b></div>
+        <div><span>Leistungszeitraum</span><b>${escapeHtml(rec.period)}</b></div>
+        ${rec.custNumber ? `<div><span>Kundennr.</span><b>${escapeHtml(rec.custNumber)}</b></div>` : ''}
+        ${rec.custRef ? `<div><span>Ihr Zeichen</span><b>${escapeHtml(rec.custRef)}</b></div>` : ''}
+        <div><span>Fällig am</span><b>${dueDate(rec.date, rec.paymentTerm)}</b></div>
+        <div><span>Steuernummer</span><b>${escapeHtml(s.taxId)}</b></div>
+      </div>
+    </div>
+
+    <div class="inv-body">
+      <div class="inv-recipient">
+        ${escapeHtml(rec.custName)}<br>
+        ${escapeHtml(rec.custStreet)}<br>
+        ${escapeHtml(rec.custCity)}
+      </div>
+    </div>
+
+    <div class="inv-title">Rechnung ${monthYear(rec.date)} — ${rec.number}</div>
+    ${korrekturNote}
+    <p class="inv-salutation">Sehr geehrte Damen und Herren,<br>für die erbrachten Leistungen erlaube ich mir, wie folgt Rechnung zu stellen:</p>
+
+    <div class="table-scroll">
+      <table class="inv-items">
+        <thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Einzel €</th><th>Gesamt €</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+
+    <div class="inv-sum">
+      <table>${sumRows}</table>
+    </div>
+
+    <div class="inv-notice">
+      *Gemäß §19 Abs. 1 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).<br>
+      ${termText}<br><br>
+      Vielen Dank für Ihr Vertrauen.<br><br>
+      Mit freundlichen Grüßen<br>
+      ${escapeHtml(s.firma)}
+    </div>
+
+    <div class="inv-footer">
+      <div>${escapeHtml(s.firma)}<br>${escapeHtml(s.street)}, ${escapeHtml(s.city)}<br>Tel.: ${escapeHtml(s.phone)}<br>${escapeHtml(s.email)}</div>
+      <div>Steuernummer: ${escapeHtml(s.taxId)}<br>Gemäß §19 UStG keine USt.</div>
+      <div>${escapeHtml(s.bank)}<br>Kontoinhaber: ${escapeHtml(s.kontoinhaber||s.firma)}<br>IBAN: ${escapeHtml(s.iban)}<br>BIC: ${escapeHtml(s.bic)}</div>
+    </div>
+  `;
+  document.getElementById('invoicePreview').innerHTML = html;
+}
+
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ---------------- Journal ---------------- */
+function renderJournal(){
+  const journal = loadJournal();
+  const tbody = document.getElementById('journalBody');
+  tbody.innerHTML = '';
+  journal.slice().reverse().forEach(rec=>{
+    const tr = document.createElement('tr');
+    const isKorrektur = !!rec.correction;
+    tr.innerHTML = `
+      <td>${rec.number}</td>
+      <td>${fmtDate(rec.date)}</td>
+      <td>${escapeHtml(rec.custName)}</td>
+      <td>${fmtMoney(rec.total)}</td>
+      <td><span class="badge ${isKorrektur?'korrektur':'normal'}">${isKorrektur?'Korrektur':'Original'}</span></td>
+      <td>
+        <button class="btn secondary small" onclick="openInvoice('${rec.number}')">Öffnen</button>
+        <button class="btn secondary small" onclick="startCorrection('${rec.number}')">Korrigieren</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function findInvoice(number){
+  return loadJournal().find(r=>r.number===number);
+}
+function openInvoice(number){
+  const rec = findInvoice(number);
+  if(!rec) return;
+  renderInvoicePreview(rec);
+  showView('preview');
+}
+function startCorrection(number){
+  const rec = findInvoice(number);
+  if(!rec) return;
+  pendingCorrectionOf = {number: rec.number, date: rec.date};
+  document.getElementById('corrOrigNumber').value = rec.number;
+  document.getElementById('corrOrigNumber').readOnly = true;
+  document.getElementById('corrOrigDate').value = rec.date;
+  document.getElementById('corrOrigDate').readOnly = true;
+  document.getElementById('corrManualHint').style.display = 'none';
+  document.getElementById('corrReason').value = '';
+  document.getElementById('correctionBanner').style.display = 'block';
+
+  document.getElementById('custName').value = rec.custName;
+  document.getElementById('custStreet').value = rec.custStreet;
+  document.getElementById('custCity').value = rec.custCity;
+  document.getElementById('custNumber').value = rec.custNumber || '';
+  document.getElementById('custRef').value = rec.custRef || '';
+  document.getElementById('invDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('periodModeRange').checked = !!rec.periodIsRange;
+  document.getElementById('periodModeSingle').checked = !rec.periodIsRange;
+  togglePeriodMode();
+  document.getElementById('invPeriodSingle').value = rec.periodSingle || '';
+  document.getElementById('invPeriodStart').value = rec.periodStart || '';
+  document.getElementById('invPeriodEnd').value = rec.periodEnd || '';
+  document.getElementById('paymentTerm').value = rec.paymentTerm || 'sofort';
+  document.getElementById('discountPct').value = rec.discountPct || 0;
+
+  document.getElementById('itemsBody').innerHTML='';
+  rec.items.forEach(it=> addItemRow(it));
+
+  showView('new');
+}
+
+/* Für den Fall, dass eine bereits ausgestellte Rechnung nicht (mehr) im Journal
+   auftaucht (Dateneingabefehler, verlorene/nicht importierte Sicherung o.ä.):
+   Trotzdem muss sich buchhalterisch sauber darauf eine Korrektur/Stornorechnung
+   beziehen lassen, mit neuer fortlaufender Nummer. Nummer/Datum werden hier
+   manuell eingetragen statt aus dem Journal übernommen. */
+function startManualCorrection(){
+  resetForm();
+  pendingCorrectionOf = { number: null, date: null, manual: true };
+  document.getElementById('corrOrigNumber').value = '';
+  document.getElementById('corrOrigNumber').readOnly = false;
+  document.getElementById('corrOrigDate').value = '';
+  document.getElementById('corrOrigDate').readOnly = false;
+  document.getElementById('corrManualHint').style.display = 'block';
+  document.getElementById('corrReason').value = '';
+  document.getElementById('correctionBanner').style.display = 'block';
+  showView('new');
+  document.getElementById('correctionBanner').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+/* ---------------- Backup ---------------- */
+function exportJournal(){
+  const data = {
+    journal: loadJournal(),
+    settings: loadSettings(),
+    counter: getCounter()
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'rechnungsjournal_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function getMaxInvoiceNumber(journal){
+  let max = 0;
+  (journal||[]).forEach(r=>{
+    const m = /-(\d{4,})$/.exec(r.number || '');
+    if(m){ const n = parseInt(m[1],10); if(n > max) max = n; }
+  });
+  return max;
+}
+
+function importJournal(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      const currentMax = getMaxInvoiceNumber(loadJournal());
+      const importedMax = data.journal ? getMaxInvoiceNumber(data.journal) : 0;
+
+      if(importedMax < currentMax){
+        const proceed = confirm(
+          'Achtung: Diese Sicherungsdatei enthält eine niedrigere höchste Rechnungsnummer (' + importedMax + ') ' +
+          'als der aktuelle Stand (' + currentMax + ').\n\n' +
+          'Ein Import würde das Risiko doppelt vergebener Rechnungsnummern schaffen und ist buchhalterisch nicht zulässig.\n\n' +
+          'Nur fortfahren, wenn du sicher bist, dass die aktuell gespeicherten Daten falsch sind. Trotzdem importieren?'
+        );
+        if(!proceed){
+          showToast('Import abgebrochen — aktuelle Daten wurden nicht verändert.');
+          return;
+        }
+      }
+
+      if(data.journal) saveJournalData(data.journal);
+      if(data.settings) saveSettingsData(data.settings);
+      setCounter(Math.max(data.counter || 0, importedMax + 1, getCounter()));
+      persistAfterChange();
+      showToast('Import erfolgreich. Seite wird neu geladen …');
+      setTimeout(()=> window.location.reload(), 1200);
+    }catch(err){
+      showToast('Die Datei konnte nicht gelesen werden: ' + err.message, true);
+    }
+  };
+  reader.readAsText(file);
+}
+</script>
+</body>
+</html>
